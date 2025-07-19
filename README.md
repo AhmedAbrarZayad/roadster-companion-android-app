@@ -1,2 +1,2 @@
 ﻿# roadster-companion-android-app
-<h1>Its's a companion app that we will use for our main project roadster. This will be used for sending location data.</h1>
+<h3>Its's a companion app that we will use for our main project roadster. This will be used for sending location data.</h3>
