@@ -13,6 +13,7 @@ import android.location.Location;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.Looper;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -25,12 +26,20 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
+import com.example.roadstercompanion.websocket.LocationSender;
 
 public class LocationService extends Service {
 
+    private static final String TAG = "LocationService";
     private LocationRequest locationRequest;
     private LocationCallback locationCallback;
     private FusedLocationProviderClient fusedLocationClient;
+    private LocationSender locationSender;
+
+    // Your ngrok WebSocket URL - FIXED: Changed from /wss to /ws to match Spring Boot config
+    private static final String WEBSOCKET_URL = "wss://8569284e503d.ngrok-free.app/ws";
+    private static final String USER_ID = "android_user_001"; // You can make this dynamic
+
     public static final String ACTION_START = "START";
     public static final String ACTION_STOP = "STOP";
 
@@ -46,6 +55,10 @@ public class LocationService extends Service {
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
+        // Initialize WebSocket connection
+        locationSender = new LocationSender(WEBSOCKET_URL);
+        locationSender.connectWebSocket();
+
         locationRequest = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10000)
                 .setMinUpdateIntervalMillis(5000)
                 .build();
@@ -55,9 +68,21 @@ public class LocationService extends Service {
             public void onLocationResult(LocationResult locationResult) {
                 if (locationResult == null) return;
                 for (Location location : locationResult.getLocations()) {
-                    // TODO: Replace Toast with database call when ready
+                    Log.d(TAG, "📍 New location received: " + location.getLatitude() + ", " + location.getLongitude());
+
+                    // Send location data via WebSocket to Spring Boot server
+                    locationSender.sendLocation(
+                        USER_ID,
+                        location.getLatitude(),
+                        location.getLongitude(),
+                        location.getAccuracy(),
+                        location.hasSpeed() ? location.getSpeed() : 0.0,
+                        location.hasBearing() ? location.getBearing() : 0.0
+                    );
+
+                    // Show toast for debugging (you can remove this later)
                     Toast.makeText(LocationService.this,
-                            "Lat: " + location.getLatitude() + ", Lon: " + location.getLongitude(),
+                            "📡 Location sent: " + location.getLatitude() + ", " + location.getLongitude(),
                             Toast.LENGTH_SHORT).show();
                 }
             }
@@ -128,6 +153,10 @@ public class LocationService extends Service {
         super.onDestroy();
         if (fusedLocationClient != null && locationCallback != null) {
             stopLocationUpdates();
+        }
+        // Close WebSocket connection
+        if (locationSender != null) {
+            locationSender.disconnect();
         }
     }
     private void stopLocationUpdates() {
