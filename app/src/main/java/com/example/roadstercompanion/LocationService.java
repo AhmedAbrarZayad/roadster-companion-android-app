@@ -37,7 +37,7 @@ public class LocationService extends Service {
     private LocationSender locationSender;
 
     // Your ngrok WebSocket URL - FIXED: Changed from /wss to /ws to match Spring Boot config
-    private static final String WEBSOCKET_URL = "wss://8569284e503d.ngrok-free.app/ws";
+    private static final String WEBSOCKET_URL = "wss://roadster-backend.onrender.com/ws";
     private static final String USER_ID = "android_user_001"; // You can make this dynamic
 
     public static final String ACTION_START = "START";
